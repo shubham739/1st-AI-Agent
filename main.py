@@ -5,6 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.runnables.base import RunnableConfig
+from tools import search_tool, wiki_tool, save_tool
 
 load_dotenv()
 
@@ -12,7 +13,7 @@ class ResearchResponse(BaseModel):
     topic: str
     summary: str
     sources: list[str]
-    toold_used: list[str]
+    tools_used: list[str]
 
 # Initialize the LLM with OpenAI's GPT-3.5 Turbo model
 llm = ChatOpenAI(model="gpt-3.5-turbo")
@@ -34,16 +35,16 @@ prompt = ChatPromptTemplate.from_messages(
     ]
 ).partial(format_instructions=parser.get_format_instructions())
 
+tools = [search_tool, wiki_tool, save_tool]
 agent = create_tool_calling_agent(
     llm=llm, 
     prompt=prompt, 
-   tools=[]
+   tools=tools
 )
 
-agent_executor = AgentExecutor(agent=agent, tools=[], verbose=True)
-raw_response = agent_executor.invoke({"query": "What is the capital of France?"})
-
-print("Raw response:", raw_response)
+agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+query = input("Enter your search query: ")
+raw_response = agent_executor.invoke({"query": query})
 
 structured_response = parser.parse(raw_response.get("output"))
 print("Structured response:", structured_response)
